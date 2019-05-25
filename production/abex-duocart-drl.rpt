@@ -1,0 +1,25 @@
+Drill report for /home/debian/Progetti/ATARI/abex-duocart/abex-duocart.kicad_pcb
+Created on Sat 25 May 2019 20:19:15 CEST
+
+Copper Layer Stackup:
+    =============================================================
+    L1 :  F.Cu                      front
+    L2 :  B.Cu                      back
+
+
+Drill file 'abex-duocart.drl' contains
+    plated through holes:
+    =============================================================
+    T1  0,30mm  0,012"  (140 holes)
+    T2  0,80mm  0,031"  (2 holes)
+    T3  1,02mm  0,040"  (13 holes)
+    T4  3,00mm  0,118"  (4 holes)
+
+    Total plated holes count 159
+
+
+Not plated through holes are merged with plated holes
+    unplated through holes:
+    =============================================================
+
+    Total unplated holes count 0
