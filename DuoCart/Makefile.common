@@ -4,9 +4,16 @@
 # building variables
 ######################################
 # debug build?
-DEBUG = 1
-# optimization
-OPT = -Og
+DEBUG ?= 0
+
+ifeq ($(DEBUG), 1)
+	OPT =
+else
+	# optimization level
+	#OPTLVL = -O2
+	OPTLVL = -O3
+	OPT = $(OPTLVL) -fomit-frame-pointer -funroll-loops
+endif
 
 
 #######################################
@@ -24,7 +31,8 @@ LIBRARY_C_SOURCES = \
 	Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_sdio.c \
 	Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma.c \
 	Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spi.c \
-	
+	Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_usart.c \
+
 
 LIBRARY_C_SOURCES += \
 	Libraries/tm_stm32f4_fatfs/tm_stm32f4_fatfs.c \
