@@ -159,7 +159,6 @@ LIBS:Interface_CAN_LIN
 LIBS:Interface
 LIBS:Graphic
 LIBS:GPU
-LIBS:ft232rl
 LIBS:FPGA_Xilinx_Virtex7
 LIBS:FPGA_Xilinx_Virtex6
 LIBS:FPGA_Xilinx_Virtex5
@@ -434,26 +433,14 @@ Text GLabel 4750 2650 0    39   BiDi ~ 0
 mPHI2
 Text GLabel 4750 2850 0    39   BiDi ~ 0
 mAUDIO
-Text GLabel 4750 3050 0    39   BiDi ~ 0
-~mREF
 Text GLabel 4850 2100 1    39   BiDi ~ 0
 VCC_3V3
 Text GLabel 6450 5150 2    39   BiDi ~ 0
 SWDCLK
 Text GLabel 6450 4950 2    39   BiDi ~ 0
 SWDIO
-Text GLabel 4750 3450 0    39   BiDi ~ 0
-~mEXSEL
 Text GLabel 4750 3250 0    39   BiDi ~ 0
 mR/~W
-Text GLabel 4750 3650 0    39   BiDi ~ 0
-~mIRQ
-Text GLabel 4750 3850 0    39   BiDi ~ 0
-~mHALT
-Text GLabel 4750 4050 0    39   BiDi ~ 0
-~mD1XX
-Text GLabel 4750 4250 0    39   BiDi ~ 0
-~mMPD
 Text GLabel 4750 4450 0    39   BiDi ~ 0
 ~mS4
 Text GLabel 4750 4650 0    39   BiDi ~ 0
@@ -512,8 +499,6 @@ Text GLabel 6400 2550 2    39   Input ~ 0
 mD6
 Text GLabel 6400 2350 2    39   Input ~ 0
 mD7
-Text Notes 1300 6850 0    79   ~ 16
-EXTENDED BUS PINS ARE CONNECTED IN THE SLOT BUT LEFT UNTRACKED
 Text GLabel 9700 4900 1    39   BiDi ~ 0
 SWDIO
 Text GLabel 9850 4900 1    39   BiDi ~ 0
@@ -698,7 +683,7 @@ Wire Wire Line
 	6150 4750 6000 4750
 Connection ~ 6150 4350
 Wire Wire Line
-	4850 2100 4850 5350
+	4850 2100 4850 4950
 Wire Wire Line
 	4850 2550 5200 2550
 Wire Wire Line
@@ -719,9 +704,6 @@ Connection ~ 4850 4150
 Wire Wire Line
 	4850 4950 5200 4950
 Connection ~ 4850 4550
-Wire Wire Line
-	4850 5350 5200 5350
-Connection ~ 4850 4950
 Wire Wire Line
 	6000 4550 6350 4550
 Wire Wire Line
@@ -831,4 +813,14 @@ Wire Wire Line
 	1450 5550 2100 5550
 Wire Wire Line
 	1800 5450 1800 5600
+NoConn ~ 5200 5350
+Text Notes 3950 6050 0    60   ~ 12
+A31 is +5VDC. Unused here
+Text GLabel 4750 3050 0    39   BiDi ~ 0
+~mREF
+NoConn ~ 4750 3450
+NoConn ~ 4750 3650
+NoConn ~ 4750 3850
+NoConn ~ 4750 4050
+NoConn ~ 4750 4250
 $EndSCHEMATC

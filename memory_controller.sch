@@ -159,7 +159,6 @@ LIBS:Interface_CAN_LIN
 LIBS:Interface
 LIBS:Graphic
 LIBS:GPU
-LIBS:ft232rl
 LIBS:FPGA_Xilinx_Virtex7
 LIBS:FPGA_Xilinx_Virtex6
 LIBS:FPGA_Xilinx_Virtex5
@@ -372,21 +371,21 @@ F 3 "" H 8850 1900 50  0001 C CNN
 $EndComp
 Text GLabel 8300 3200 3    39   Input ~ 0
 VCC_3V3
-Text GLabel 4400 3750 0    39   BiDi ~ 0
+Text GLabel 4400 2950 0    39   BiDi ~ 0
 mD0
-Text GLabel 4400 3850 0    39   BiDi ~ 0
+Text GLabel 4400 3050 0    39   BiDi ~ 0
 mD1
-Text GLabel 4400 3950 0    39   BiDi ~ 0
+Text GLabel 4400 3150 0    39   BiDi ~ 0
 mD2
-Text GLabel 4400 4050 0    39   BiDi ~ 0
+Text GLabel 4400 3250 0    39   BiDi ~ 0
 mD3
-Text GLabel 4400 4150 0    39   BiDi ~ 0
+Text GLabel 4400 3350 0    39   BiDi ~ 0
 mD4
-Text GLabel 4400 4250 0    39   BiDi ~ 0
+Text GLabel 4400 3450 0    39   BiDi ~ 0
 mD5
-Text GLabel 4400 4350 0    39   BiDi ~ 0
+Text GLabel 4400 3550 0    39   BiDi ~ 0
 mD6
-Text GLabel 4400 4450 0    39   BiDi ~ 0
+Text GLabel 4400 3650 0    39   BiDi ~ 0
 mD7
 Text GLabel 4400 4650 0    39   BiDi ~ 0
 mA0
@@ -468,7 +467,6 @@ Text GLabel 6200 2550 2    39   BiDi ~ 0
 SWDIO_MEM
 NoConn ~ 6200 1950
 NoConn ~ 6200 1850
-NoConn ~ 6200 1750
 $Comp
 L R_Small R19
 U 1 1 5C43FC39
@@ -491,11 +489,6 @@ F 3 "" H 2850 2350 50  0000 C CNN
 	1    2850 2350
 	0    1    1    0   
 $EndComp
-NoConn ~ 4400 3250
-NoConn ~ 4400 3350
-NoConn ~ 4400 3450
-NoConn ~ 4400 3550
-NoConn ~ 4400 3650
 Text GLabel 4400 5450 0    39   BiDi ~ 0
 mA8
 Text GLabel 4400 5550 0    39   BiDi ~ 0
@@ -516,9 +509,6 @@ NoConn ~ 6200 2050
 NoConn ~ 6200 2350
 NoConn ~ 6200 2450
 NoConn ~ 6200 2750
-NoConn ~ 4400 3150
-NoConn ~ 6200 1650
-NoConn ~ 6200 1550
 NoConn ~ 6200 1450
 NoConn ~ 6200 1350
 NoConn ~ 6200 1250
@@ -528,65 +518,55 @@ NoConn ~ 6200 5350
 $Comp
 L R_Small R20
 U 1 1 5CA875A2
-P 6450 1900
-F 0 "R20" H 6480 1920 50  0000 L CNN
-F 1 "10K" H 6480 1860 50  0000 L CNN
-F 2 "Resistors_SMD:R_1206_HandSoldering" H 6450 1900 50  0001 C CNN
-F 3 "" H 6450 1900 50  0000 C CNN
-	1    6450 1900
+P 6650 1900
+F 0 "R20" H 6680 1920 50  0000 L CNN
+F 1 "10K" H 6680 1860 50  0000 L CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" H 6650 1900 50  0001 C CNN
+F 3 "" H 6650 1900 50  0000 C CNN
+	1    6650 1900
 	1    0    0    -1  
 $EndComp
 $Comp
 L GND #PWR013
 U 1 1 5CA875AF
-P 6450 1650
-F 0 "#PWR013" H 6450 1400 50  0001 C CNN
-F 1 "GND" H 6450 1500 50  0000 C CNN
-F 2 "" H 6450 1650 50  0001 C CNN
-F 3 "" H 6450 1650 50  0001 C CNN
-	1    6450 1650
+P 6650 1650
+F 0 "#PWR013" H 6650 1400 50  0001 C CNN
+F 1 "GND" H 6650 1500 50  0000 C CNN
+F 2 "" H 6650 1650 50  0001 C CNN
+F 3 "" H 6650 1650 50  0001 C CNN
+	1    6650 1650
 	-1   0    0    1   
 $EndComp
 $Comp
 L R_Small R21
 U 1 1 5CA87673
-P 6950 2000
-F 0 "R21" H 6980 2020 50  0000 L CNN
-F 1 "10K" H 6980 1960 50  0000 L CNN
-F 2 "Resistors_SMD:R_1206_HandSoldering" H 6950 2000 50  0001 C CNN
-F 3 "" H 6950 2000 50  0000 C CNN
-	1    6950 2000
+P 7150 2000
+F 0 "R21" H 7180 2020 50  0000 L CNN
+F 1 "10K" H 7180 1960 50  0000 L CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" H 7150 2000 50  0001 C CNN
+F 3 "" H 7150 2000 50  0000 C CNN
+	1    7150 2000
 	1    0    0    -1  
 $EndComp
 $Comp
 L GND #PWR014
 U 1 1 5CA87680
-P 6950 1750
-F 0 "#PWR014" H 6950 1500 50  0001 C CNN
-F 1 "GND" H 6950 1600 50  0000 C CNN
-F 2 "" H 6950 1750 50  0001 C CNN
-F 3 "" H 6950 1750 50  0001 C CNN
-	1    6950 1750
+P 7150 1750
+F 0 "#PWR014" H 7150 1500 50  0001 C CNN
+F 1 "GND" H 7150 1600 50  0000 C CNN
+F 2 "" H 7150 1750 50  0001 C CNN
+F 3 "" H 7150 1750 50  0001 C CNN
+	1    7150 1750
 	-1   0    0    1   
 $EndComp
-Text GLabel 6550 2150 2    39   BiDi ~ 0
+Text GLabel 6750 2150 2    39   BiDi ~ 0
 UART_TX
-Text GLabel 7050 2250 2    39   BiDi ~ 0
+Text GLabel 7250 2250 2    39   BiDi ~ 0
 UART_RX
-Text GLabel 4300 3050 0    39   BiDi ~ 0
+Text GLabel 6350 1650 2    39   BiDi ~ 0
 ~mREF
-Text GLabel 4300 2950 0    39   BiDi ~ 0
+Text GLabel 6350 1550 2    39   BiDi ~ 0
 ~mRST
-Text GLabel 6200 4150 2    39   BiDi ~ 0
-~mIRQ
-Text GLabel 6200 4050 2    39   BiDi ~ 0
-~mMPD
-Text GLabel 6200 3950 2    39   BiDi ~ 0
-~mHALT
-Text GLabel 6200 3650 2    39   BiDi ~ 0
-~mD1XX
-Text GLabel 6200 3750 2    39   BiDi ~ 0
-~mEXSEL
 NoConn ~ 6200 3450
 $Comp
 L R_Small R28
@@ -765,19 +745,19 @@ Wire Wire Line
 Wire Wire Line
 	3600 3050 2950 3050
 Wire Wire Line
-	6450 1800 6450 1650
+	6650 1800 6650 1650
 Wire Wire Line
-	6950 1900 6950 1750
+	7150 1900 7150 1750
 Wire Wire Line
-	6950 2250 6950 2100
+	7150 2250 7150 2100
 Wire Wire Line
-	6550 2150 6200 2150
+	6200 2150 6750 2150
 Wire Wire Line
-	6450 2000 6450 2150
-Connection ~ 6450 2150
+	6650 2000 6650 2150
+Connection ~ 6650 2150
 Wire Wire Line
-	6200 2250 7050 2250
-Connection ~ 6950 2250
+	6200 2250 7250 2250
+Connection ~ 7150 2250
 Wire Wire Line
 	6200 3150 7350 3150
 Wire Wire Line
@@ -1011,17 +991,6 @@ Text GLabel 7350 3150 2    39   BiDi ~ 0
 mRD5
 Text GLabel 6200 3350 2    39   BiDi ~ 0
 mRD4
-$Comp
-L STM32F407VGTx U1
-U 1 1 5CE94942
-P 5300 3650
-F 0 "U1" H 4600 6200 50  0000 L CNN
-F 1 "STM32F407VGTx" H 5800 6200 50  0000 L CNN
-F 2 "Housings_QFP:TQFP-100_14x14mm_Pitch0.5mm" H 4600 1050 50  0001 R CNN
-F 3 "" H 5300 3650 50  0001 C CNN
-	1    5300 3650
-	1    0    0    -1  
-$EndComp
 Text GLabel 6200 3050 2    39   BiDi Italic 8
 LEDRED_MEM
 $Comp
@@ -1080,10 +1049,6 @@ F 3 "" H 1750 4600 50  0001 C CNN
 	1    1750 4500
 	-1   0    0    1   
 $EndComp
-Wire Wire Line
-	4300 2950 4400 2950
-Wire Wire Line
-	4300 3050 4400 3050
 NoConn ~ 6200 5450
 NoConn ~ 6200 5550
 NoConn ~ 6200 5650
@@ -1102,30 +1067,25 @@ Text GLabel 3150 4500 2    39   BiDi ~ 0
 mSDCLK
 Text GLabel 3150 4700 2    39   BiDi ~ 0
 mSDI
-Text GLabel 3150 4300 2    39   BiDi ~ 0
+Text GLabel 3350 4300 2    39   BiDi ~ 0
 mSDO
 Wire Wire Line
 	2650 4500 3150 4500
 Wire Wire Line
-	2650 4300 3150 4300
+	2650 4300 3350 4300
 $Comp
 L R_Small R2
 U 1 1 5CE973A3
-P 3050 4050
-F 0 "R2" H 3080 4070 50  0000 L CNN
-F 1 "4.7K" H 3080 4010 50  0000 L CNN
-F 2 "Resistors_SMD:R_1206_HandSoldering" H 3050 4050 50  0001 C CNN
-F 3 "" H 3050 4050 50  0001 C CNN
-	1    3050 4050
+P 3150 3950
+F 0 "R2" H 3180 3970 50  0000 L CNN
+F 1 "4.7K" H 3180 3910 50  0000 L CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" H 3150 3950 50  0001 C CNN
+F 3 "" H 3150 3950 50  0001 C CNN
+	1    3150 3950
 	1    0    0    -1  
 $EndComp
-Text GLabel 3050 3800 1    39   Input ~ 0
+Text GLabel 3150 3750 1    39   Input ~ 0
 VCC_3V3
-Wire Wire Line
-	3050 3800 3050 3950
-Wire Wire Line
-	3050 4150 3050 4300
-Connection ~ 3050 4300
 Text GLabel 3550 4600 2    39   Input ~ 0
 VCC_3V3
 Wire Wire Line
@@ -1172,10 +1132,104 @@ F 3 "" H 2900 4400 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	2650 4400 2900 4400
-NoConn ~ 2650 4800
-NoConn ~ 2650 4900
-NoConn ~ 2650 4200
 NoConn ~ 2650 4100
 NoConn ~ 2650 4000
 NoConn ~ 950  4000
+$Comp
+L STM32F407VGTx U1
+U 1 1 5CE94942
+P 5300 3650
+F 0 "U1" H 4600 6200 50  0000 L CNN
+F 1 "STM32F407VGTx" H 5800 6200 50  0000 L CNN
+F 2 "Housings_QFP:TQFP-100_14x14mm_Pitch0.5mm" H 4600 1050 50  0001 R CNN
+F 3 "" H 5300 3650 50  0001 C CNN
+	1    5300 3650
+	1    0    0    -1  
+$EndComp
+NoConn ~ 4400 3750
+NoConn ~ 4400 3850
+NoConn ~ 4400 3950
+NoConn ~ 4400 4050
+NoConn ~ 4400 4150
+NoConn ~ 4400 4250
+NoConn ~ 4400 4350
+NoConn ~ 4400 4450
+Wire Wire Line
+	6200 1550 6350 1550
+Wire Wire Line
+	6350 1650 6200 1650
+Text GLabel 3150 4800 2    39   BiDi ~ 0
+mCD
+Wire Wire Line
+	2650 4800 3150 4800
+$Comp
+L R_Small R4
+U 1 1 5D14D80B
+P 3050 5050
+F 0 "R4" H 3080 5070 50  0000 L CNN
+F 1 "4.7K" H 3080 5010 50  0000 L CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" H 3050 5050 50  0001 C CNN
+F 3 "" H 3050 5050 50  0001 C CNN
+	1    3050 5050
+	1    0    0    -1  
+$EndComp
+Text GLabel 3050 5300 3    39   Input ~ 0
+VCC_3V3
+Wire Wire Line
+	3050 4800 3050 4950
+Connection ~ 3050 4800
+$Comp
+L R_Small R5
+U 1 1 5D14DAE9
+P 2750 5050
+F 0 "R5" H 2780 5070 50  0000 L CNN
+F 1 "4.7K" H 2780 5010 50  0000 L CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" H 2750 5050 50  0001 C CNN
+F 3 "" H 2750 5050 50  0001 C CNN
+	1    2750 5050
+	1    0    0    -1  
+$EndComp
+Text GLabel 2750 5300 3    39   Input ~ 0
+VCC_3V3
+Wire Wire Line
+	2650 4900 2750 4900
+Wire Wire Line
+	2750 4900 2750 4950
+Wire Wire Line
+	2750 5150 2750 5300
+$Comp
+L R_Small R7
+U 1 1 5D14DF76
+P 2850 3950
+F 0 "R7" H 2880 3970 50  0000 L CNN
+F 1 "4.7K" H 2880 3910 50  0000 L CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" H 2850 3950 50  0001 C CNN
+F 3 "" H 2850 3950 50  0001 C CNN
+	1    2850 3950
+	1    0    0    -1  
+$EndComp
+Text GLabel 6350 1750 2    39   BiDi ~ 0
+mCD
+Wire Wire Line
+	6200 1750 6350 1750
+Wire Wire Line
+	3150 4300 3150 4050
+Connection ~ 3150 4300
+Wire Wire Line
+	3150 3850 3150 3750
+Wire Wire Line
+	2650 4200 2850 4200
+Wire Wire Line
+	2850 4200 2850 4050
+Wire Wire Line
+	2850 3850 2850 3750
+Text GLabel 2850 3750 1    39   Input ~ 0
+VCC_3V3
+Wire Wire Line
+	3050 5150 3050 5300
+NoConn ~ 6200 3650
+NoConn ~ 6200 3750
+NoConn ~ 6200 3950
+NoConn ~ 6200 4050
+NoConn ~ 6200 4150
 $EndSCHEMATC
