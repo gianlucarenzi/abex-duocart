@@ -24,7 +24,7 @@ BIN = $(CP) -O binary -S
 # CFLAGS
 #######################################
 # cpu
-CPU = -mcpu=cortex-m4
+CPU = -mtune=cortex-m4 -march=armv7e-m 
 
 # fpu
 FPU = -mfpu=fpv4-sp-d16
