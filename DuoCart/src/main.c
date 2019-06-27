@@ -23,7 +23,6 @@
 #define _GNU_SOURCE
 
 #include "defines.h"
-#include "stm32f4xx_conf.h"
 #include "stm32f4xx.h"
 #include "tm_stm32f4_fatfs.h"
 #include "tm_stm32f4_delay.h"
@@ -33,11 +32,15 @@
 #include "rom.h" /* unsigned char cart_rom[64*1024] */
 #include "osrom.h"
 
-static unsigned char cart_ram1[64*1024];
-static unsigned char cart_ram2[64*1024] __attribute__((section(".ccmram")));
-static unsigned char cart_d5xx[256] = {0};
+#ifdef STM32F407xE
+	#define stricmp strcasecmp
+	#define strnicmp strncasecmp
+#endif
 
-static char errorBuf[40];
+unsigned char cart_ram1[64*1024];
+unsigned char cart_ram2[64*1024] __attribute__((section(".ccmram")));
+unsigned char cart_d5xx[256] = {0};
+char errorBuf[40];
 
 #define CART_CMD_OPEN_ITEM			0x00
 #define CART_CMD_READ_CUR_DIR		0x01
@@ -80,13 +83,7 @@ static char errorBuf[40];
 #define CART_TYPE_DIAMOND_64K		23	// 64k
 #define CART_TYPE_EXPRESS_64K		24	// 64k
 #define CART_TYPE_BLIZZARD_16K		25	// 16k
-#define CART_TYPE_PBI				26	// PBI ROM CODE
-#define CART_TYPE_COMPYSHOP_128K	27	// MEMORY EXPANSION TYPE
-#define CART_TYPE_RAMBO_256K		28
-#define CART_TYPE_COMPYSHOP_256K	29
-#define CART_TYPE_RAMBO_576K		30
-#define CART_TYPE_MEGARAM_1088K		31
-#define CART_TYPE_ATR				254	// END OF LIST
+#define CART_TYPE_ATR				254
 #define CART_TYPE_XEX				255
 
 typedef struct {
@@ -104,7 +101,7 @@ static int entry_compare(const void* p1, const void* p2)
 	DIR_ENTRY* e2 = (DIR_ENTRY*)p2;
 	if (e1->isDir && !e2->isDir) return -1;
 	else if (!e1->isDir && e2->isDir) return 1;
-	else return strcasecmp(e1->long_filename, e2->long_filename);
+	else return stricmp(e1->long_filename, e2->long_filename);
 }
 
 static char *get_filename_ext(char *filename) {
@@ -115,9 +112,8 @@ static char *get_filename_ext(char *filename) {
 
 static int is_valid_file(char *filename) {
 	char *ext = get_filename_ext(filename);
-	if (strcasecmp(ext, "CAR") == 0 || strcasecmp(ext, "ROM") == 0
-			|| strcasecmp(ext, "XEX") == 0 || strcasecmp(ext, "ATR") == 0 ||
-			strcasecmp(ext, "PBI") == 0 || strcasecmp(ext, "NFO") == 0)
+	if (stricmp(ext, "CAR") == 0 || stricmp(ext, "ROM") == 0
+			|| stricmp(ext, "XEX") == 0 || stricmp(ext, "ATR") == 0)
 		return 1;
 	return 0;
 }
@@ -413,7 +409,6 @@ static int load_file(char *filename) {
 		dst += 4;	// leave room for the file length at the start of sram
 		bytes_to_read -= 4;
 	}
-
 	// read the file in two 64k chunks to each area of SRAM
 	if (f_read(&fil, dst, bytes_to_read, &br) != FR_OK) {
 		cart_type = CART_TYPE_NONE;
@@ -477,45 +472,75 @@ cleanup:
 	return cart_type;
 }
 
-#define RD5_LOW GPIOB->BSRRH = GPIO_Pin_2;
-#define RD4_LOW GPIOB->BSRRH = GPIO_Pin_4;
-#define RD5_HIGH GPIOB->BSRRL = GPIO_Pin_2;
-#define RD4_HIGH GPIOB->BSRRL = GPIO_Pin_4;
+#define RD5_LOW   GPIOB->BSRRH = GPIO_Pin_2;
+#define RD4_LOW   GPIOB->BSRRH = GPIO_Pin_4;
+#define RD5_HIGH  GPIOB->BSRRL = GPIO_Pin_2;
+#define RD4_HIGH  GPIOB->BSRRL = GPIO_Pin_4;
 
 #define CONTROL_IN GPIOC->IDR
-#define ADDR_IN GPIOD->IDR
-#define DATA_IN GPIOE->IDR
-#define DATA_OUT GPIOE->ODR
+#define ADDR_IN    GPIOD->IDR
+#define DATA_IN    GPIOE->IDR
+#define DATA_OUT   GPIOE->ODR
 
-/* PORTA SIGNALS */
-#define UART_TX_TTL		(1 << 9)
-#define UART_RX_TTL		(1 << 10)
+#define PHI2_RD (GPIOC->IDR & 0x0001)
+#define S5_RD (GPIOC->IDR & 0x0002)
+#define S4_RD (GPIOC->IDR & 0x0004)
+#define S4_AND_S5_HIGH (GPIOC->IDR & 0x0006) == 0x6
 
-/* PORTB SIGNALS */
-#define HALT		(1 << 7)
-#define RST			(1 << 8)
+#define PHI2	0x0001
+#define S5		0x0002
+#define S4		0x0004
+#define CCTL	0x0010
+#define RW		0x0020
 
-/* PORTC SIGNALS */
-#define PHI2	(1 << 0)
-#define S5		(1 << 1)
-#define S4		(1 << 2)
-#define TP1		(1 << 3)
-#define CCTL	(1 << 4)
-#define RW		(1 << 5)
+#define SET_DATA_MODE_IN      GPIOE->MODER = 0x00000000;
+#define SET_DATA_MODE_OUT     GPIOE->MODER = 0x00005555;
 
-#define PHI2_RD        (GPIOC->IDR & 0x0001)
-#define S5_RD          (GPIOC->IDR & 0x0002)
-#define S4_RD          (GPIOC->IDR & 0x0004)
-#define S4_AND_S5_HIGH ((GPIOC->IDR & 0x0006) == 0x6)
+#define GREEN_LED_OFF         GPIOB->BSRRH = GPIO_Pin_0;
+#define RED_LED_OFF           GPIOB->BSRRH = GPIO_Pin_1;
+#define GREEN_LED_ON          GPIOB->BSRRL = GPIO_Pin_0;
+#define RED_LED_ON            GPIOB->BSRRL = GPIO_Pin_1;
 
-#define SET_DATA_MODE_IN GPIOE->MODER = 0x00000000;
-#define SET_DATA_MODE_OUT GPIOE->MODER = 0x55550000;
+#define ATARI_RESET_ASSERT    GPIOA->BSRRL = GPIO_Pin_3; /* RST -> GPIO(A.3) LOW */
+#define ATARI_RESET_DEASSERT  GPIOA->BSRRH = GPIO_Pin_3; /* RST -> GPIO(A.3) HIGH */
 
-#define GREEN_LED_OFF GPIOB->BSRRH = GPIO_Pin_0;
-#define RED_LED_OFF   GPIOB->BSRRH = GPIO_Pin_1;
+enum {
+	INSERTED = 0,
+	REMOVED,
+};
 
-#define GREEN_LED_ON  GPIOB->BSRRL = GPIO_Pin_0;
-#define RED_LED_ON    GPIOB->BSRRL = GPIO_Pin_1;
+/* Polling CARD_STATUS will returns any NON-ZERO value if there is
+ * NO CARD in the microSD Slot, otherwise it will returns '0' if a card
+ * is inserted.
+ */
+#define CARD_STATUS          (GPIOA->IDR & (1 << 5))
+
+/*
+ * ******************** DEBUG PORT UART *****************************
+ */
+#define DEBUG_TX           GPIO_Pin_9
+#define DEBUG_RX           GPIO_Pin_10
+#define DEBUG_PINSRC_TX    GPIO_PinSource9
+#define DEBUG_PINSRC_RX    GPIO_PinSource10
+#define DEBUG_PORT         GPIOA
+enum {
+	DBG_ERROR = 0,
+	DBG_INFO,
+	DBG_VERBOSE,
+	DBG_NOISY,
+};
+static int debuglevel = DBG_INFO;
+#define print(str)	USART_PutString(str)
+/* ANSI Eye-Candy ;-) */
+#define ANSI_RED    "\x1b[31m"
+#define ANSI_GREEN  "\x1b[32m"
+#define ANSI_YELLOW "\x1b[1;33m"
+#define ANSI_BLUE   "\x1b[1;34m"
+#define ANSI_RESET  "\x1b[0m"
+#define DBG_E(str)	print(ANSI_RED); print(str); print(ANSI_RESET);
+#define DBG_I(str)	if (debuglevel >= DBG_INFO) { print(ANSI_GREEN); print(str); print(ANSI_RESET); }
+#define DBG_V(str)	if (debuglevel >= DBG_VERBOSE) { print(ANSI_BLUE); print(str); printf(ANSI_RESET); }
+#define DBG_N(str)	if (debuglevel >= DBG_NOISY) { print(ANSI_YELLOW); print(str); printf(ANSI_RESET); }
 
 GPIO_InitTypeDef  GPIO_InitStructure;
 
@@ -524,7 +549,7 @@ static void config_gpio_leds_RD45()
 {
 	/* GPIOB Periph clock enable */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-	/* Configure PB0, PB1 in output pushpull mode */
+	/* Configure PB0, PB1in output pushpull mode */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -536,7 +561,8 @@ static void config_gpio_leds_RD45()
 /* Input Signals GPIO pins on:
  *  CLK -> PC0, /S5 -> PC1, /S4 ->PC2,  TP1 -> PC3, CCTL -> PC4, R/W -> PC5
  */
-static void config_gpio_sig(void) {
+static void config_gpio_sig(void)
+{
 	/* GPIOC Periph clock enable */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
@@ -547,48 +573,17 @@ static void config_gpio_sig(void) {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-	/* TP1 is an OUTPUT */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
-static void config_gpio_extra_sig(void) {
-
-	/* ******************
-	 * * PORT B SIGNALS *
-	 * ******************
-	 */ 
-	/* GPIOB Periph clock enable */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-
-	/* Configure GPIO Settings mRST
-	 * 
-	 * OUTPUTS:
-	 * mRST
-	 */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-}
-
-/* Input/Output data GPIO pins on PE{8..15} */
+/* Input/Output data GPIO pins on PE{0..7} */
 static void config_gpio_data(void) {
 	/* GPIOE Periph clock enable */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
 	/* Configure GPIO Settings */
 	GPIO_InitStructure.GPIO_Pin =
-		GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11 |
-		GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
+		GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 |
+		GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;	// avoid sharp edges
@@ -612,6 +607,28 @@ static void config_gpio_addr(void) {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
+}
+
+static void config_gpio_others(void)
+{
+	/* GPIOA Periph clock enable */
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+	/* Configure GPIOA (RST, REF) Settings */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	/* Card Detect = LOW (Card Inserted) - HIGH (Card Removed) */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
 /*
@@ -643,7 +660,7 @@ static int emulate_boot_rom(int atrMode) {
 				// read
 				SET_DATA_MODE_OUT
 				addr = ADDR_IN;
-				DATA_OUT = ((uint16_t)cart_d5xx[addr&0xFF])<<8;
+				DATA_OUT = ((uint16_t)cart_d5xx[addr&0xFF]);
 				// wait for phi2 low
 				while (CONTROL_IN & PHI2) ;
 				SET_DATA_MODE_IN
@@ -655,7 +672,7 @@ static int emulate_boot_rom(int atrMode) {
 				// read data bus on falling edge of phi2
 				while (CONTROL_IN & PHI2)
 					data = DATA_IN;
-				cart_d5xx[addr&0xFF] = data>>8;
+				cart_d5xx[addr&0xFF] = data;
 				if ((addr&0xFF) == 0xDF)	// write to $D5DF
 					break;
 			}
@@ -664,14 +681,14 @@ static int emulate_boot_rom(int atrMode) {
 			// normal cartridge read
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(UnoCart_rom[addr]))<<8;
+			DATA_OUT = ((uint16_t)(UnoCart_rom[addr]));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
 		}
 	}
 	__enable_irq();
-	return data>>8;
+	return data;
 }
 
 static void emulate_standard_8k() {
@@ -686,7 +703,7 @@ static void emulate_standard_8k() {
 		// while s5 low
 		while (!S5_RD) {
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram1[addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram1[addr]);
 		}
 		SET_DATA_MODE_IN
 	}
@@ -706,14 +723,14 @@ static void emulate_standard_16k() {
 			// while s4 low
 			while (!S4_RD) {
 				addr = ADDR_IN;
-				DATA_OUT = ((uint16_t)cart_ram1[addr])<<8;
+				DATA_OUT = ((uint16_t)cart_ram1[addr]);
 			}
 		}
 		else {
 			// while s5 low
 			while (!S5_RD) {
 				addr = ADDR_IN;
-				DATA_OUT = ((uint16_t)cart_ram1[0x2000|addr])<<8;
+				DATA_OUT = ((uint16_t)cart_ram1[0x2000|addr]);
 			}
 		}
 		SET_DATA_MODE_IN
@@ -734,7 +751,7 @@ static void emulate_XEGS_32k(char switchable) {
 		if (!(c & S4)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(bankPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(bankPtr+addr)));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -742,7 +759,7 @@ static void emulate_XEGS_32k(char switchable) {
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram1[0x6000|addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram1[0x6000|addr]);
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -754,9 +771,9 @@ static void emulate_XEGS_32k(char switchable) {
 			while (CONTROL_IN & PHI2)
 				data = DATA_IN;
 			// new bank is the low 2 bits written to $D5xx
-			bankPtr = &cart_ram1[0] + (8192*((data>>8) & 3));
+			bankPtr = &cart_ram1[0] + (8192*((data) & 3));
 			if (switchable) {
-				if (data & 0x8000) {
+				if (data & 0x80) {
 					RD4_LOW
 					RD5_LOW
 					GREEN_LED_OFF
@@ -784,7 +801,7 @@ static void emulate_XEGS_64k(char switchable) {
 		if (!(c & S4)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(bankPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(bankPtr+addr)));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -792,7 +809,7 @@ static void emulate_XEGS_64k(char switchable) {
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram1[0xE000|addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram1[0xE000|addr]);
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -804,9 +821,9 @@ static void emulate_XEGS_64k(char switchable) {
 			while (CONTROL_IN & PHI2)
 				data = DATA_IN;
 			// new bank is the low 3 bits written to $D5xx
-			bankPtr = &cart_ram1[0] + (8192*((data>>8) & 7));
+			bankPtr = &cart_ram1[0] + (8192*((data) & 7));
 			if (switchable) {
-				if (data & 0x8000) {
+				if (data & 0x80) {
 					RD4_LOW
 					RD5_LOW
 					GREEN_LED_OFF
@@ -834,7 +851,7 @@ static void emulate_XEGS_128k(char switchable) {
 		if (!(c & S4)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+addr)));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -842,7 +859,7 @@ static void emulate_XEGS_128k(char switchable) {
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram2[0xE000|addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram2[0xE000|addr]);
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -854,11 +871,11 @@ static void emulate_XEGS_128k(char switchable) {
 			while (CONTROL_IN & PHI2)
 				data = DATA_IN;
 			// new bank is the low 4 bits written to $D5xx
-			int bank = (data>>8) & 0xF;
+			int bank = data & 0x0F;
 			if (bank & 0x8) ramPtr = &cart_ram2[0]; else ramPtr = &cart_ram1[0];
 			ramPtr += 8192 * (bank & 0x7);
 			if (switchable) {
-				if (data & 0x8000) {
+				if (data & 0x80) {
 					RD4_LOW
 					RD5_LOW
 					GREEN_LED_OFF
@@ -886,14 +903,14 @@ static void emulate_bounty_bob() {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
 			if (addr & 0x1000) {
-				DATA_OUT = ((uint16_t)(*(bankPtr2+(addr&0xFFF))))<<8;
+				DATA_OUT = ((uint16_t)(*(bankPtr2+(addr&0xFFF))));
 				if (addr == 0x1FF6) bankPtr2 = &cart_ram1[0x4000];
 				else if (addr == 0x1FF7) bankPtr2 = &cart_ram1[0x5000];
 				else if (addr == 0x1FF8) bankPtr2 = &cart_ram1[0x6000];
 				else if (addr == 0x1FF9) bankPtr2 = &cart_ram1[0x7000];
 			}
 			else {
-				DATA_OUT = ((uint16_t)(*(bankPtr1+(addr&0xFFF))))<<8;
+				DATA_OUT = ((uint16_t)(*(bankPtr1+(addr&0xFFF))));
 				if (addr == 0x0FF6) bankPtr1 = &cart_ram1[0];
 				else if (addr == 0x0FF7) bankPtr1 = &cart_ram1[0x1000];
 				else if (addr == 0x0FF8) bankPtr1 = &cart_ram1[0x2000];
@@ -903,7 +920,7 @@ static void emulate_bounty_bob() {
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram1[0x8000|addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram1[0x8000|addr]);
 		}
 		// wait for phi2 low
 		while (CONTROL_IN & PHI2) ;
@@ -928,7 +945,7 @@ void emulate_atarimax_128k() {
 		if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+addr)));
 		}
 		else if (!(c & CCTL)) {
 			// CCTL low
@@ -967,7 +984,7 @@ static void emulate_williams() {
 		if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(bankPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(bankPtr+addr)));
 		}
 		else if (!(c & CCTL)) {
 			// CCTL low
@@ -1007,9 +1024,9 @@ static void emulate_OSS_B() {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
 			if (addr & 0x1000)
-				DATA_OUT = ((uint16_t)cart_ram1[addr&0xFFF])<<8;
+				DATA_OUT = ((uint16_t)cart_ram1[addr&0xFFF]);
 			else
-				DATA_OUT = ((uint16_t)(*(bankPtr+addr)))<<8;
+				DATA_OUT = ((uint16_t)(*(bankPtr+addr)));
 		}
 		else if (!(c & CCTL)) {
 			// CCTL low
@@ -1050,23 +1067,23 @@ static void emulate_OSS_A(char is034M) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
 			if (addr & 0x1000)
-				DATA_OUT = ((uint16_t)cart_ram1[addr|0x2000])<<8;	// 4k bank #3 always mapped to $Bxxx
+				DATA_OUT = ((uint16_t)cart_ram1[addr|0x2000]);	// 4k bank #3 always mapped to $Bxxx
 			else
-				DATA_OUT = ((uint16_t)(*(bankPtr+addr)))<<8;
+				DATA_OUT = ((uint16_t)(*(bankPtr+addr)));
 		}
 		else if (!(c & CCTL)) {
 			// CCTL low
-			addr = ADDR_IN & 0xF;
-			if (addr & 0x8) {
+			addr = ADDR_IN & 0x0F;
+			if (addr & 0x08) {
 				RD5_LOW
 				GREEN_LED_OFF
 			}
 			else {
 				RD5_HIGH
 				GREEN_LED_ON
-				if (addr == 0x0) bank = 0;
-				if (addr == 0x3 || addr == 0x7) bank = is034M ? 1 : 2;
-				if (addr == 0x4) bank = is034M ? 2 : 1;
+				if (addr == 0x00) bank = 0;
+				if (addr == 0x03 || addr == 0x07) bank = is034M ? 1 : 2;
+				if (addr == 0x04) bank = is034M ? 2 : 1;
 			}
 		}
 		// wait for phi2 low
@@ -1081,9 +1098,9 @@ static void emulate_megacart(int size) {
 	RD5_HIGH
 	uint16_t addr, data, c;
 	uint32_t bank_mask = 0x00;
-	if (size == 32) bank_mask = 0x1;
-	else if (size == 64) bank_mask = 0x3;
-	else if (size == 128) bank_mask = 0x7;
+	if (size == 32) bank_mask = 0x01;
+	else if (size == 64) bank_mask = 0x03;
+	else if (size == 128) bank_mask = 0x07;
 
 	unsigned char *ramPtr = &cart_ram1[0];
 	while (1)
@@ -1094,7 +1111,7 @@ static void emulate_megacart(int size) {
 		if (!(c & S4)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+addr)));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -1102,7 +1119,7 @@ static void emulate_megacart(int size) {
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+(addr|0x2000))))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+(addr|0x2000))));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -1114,10 +1131,10 @@ static void emulate_megacart(int size) {
 			while (CONTROL_IN & PHI2)
 				data = DATA_IN;
 			// new bank is the low n bits written to $D5xx
-			int bank = (data>>8) & bank_mask;
-			if (bank & 0x4) ramPtr = &cart_ram2[0]; else ramPtr = &cart_ram1[0];
+			int bank = data & bank_mask;
+			if (bank & 0x04) ramPtr = &cart_ram2[0]; else ramPtr = &cart_ram1[0];
 			ramPtr += 16384 * (bank&0x3);
-			if (data & 0x8000) {
+			if (data & 0x80) {
 				RD4_LOW
 				RD5_LOW
 				GREEN_LED_OFF
@@ -1145,7 +1162,7 @@ static void emulate_SIC() {
 		if (!(c & S4)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+addr)));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -1153,7 +1170,7 @@ static void emulate_SIC() {
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+(addr|0x2000))))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+(addr|0x2000))));
 			// wait for phi2 low
 			while (CONTROL_IN & PHI2) ;
 			SET_DATA_MODE_IN
@@ -1165,7 +1182,7 @@ static void emulate_SIC() {
 				if (c & RW) {
 					// read from $D5xx
 					SET_DATA_MODE_OUT
-					DATA_OUT = ((uint16_t)SIC_byte)<<8;
+					DATA_OUT = ((uint16_t)SIC_byte);
 					// wait for phi2 low
 					while (CONTROL_IN & PHI2) ;
 					SET_DATA_MODE_IN
@@ -1176,10 +1193,10 @@ static void emulate_SIC() {
 					// read the data bus on falling edge of phi2
 					while (CONTROL_IN & PHI2)
 						data = DATA_IN;
-					SIC_byte = (uint8_t)(data>>8);
+					SIC_byte = (uint8_t) data;
 					// switch bank
-					if (SIC_byte & 0x4) ramPtr = &cart_ram2[0]; else ramPtr = &cart_ram1[0];
-					ramPtr += 16384 * (SIC_byte&0x3);
+					if (SIC_byte & 0x04) ramPtr = &cart_ram2[0]; else ramPtr = &cart_ram1[0];
+					ramPtr += 16384 * (SIC_byte & 0x03);
 					if (SIC_byte & 0x40) RD5_LOW else RD5_HIGH
 					if (SIC_byte & 0x20) RD4_HIGH else RD4_LOW
 					if (SIC_byte == 0x40) GREEN_LED_OFF else GREEN_LED_ON
@@ -1201,7 +1218,7 @@ static void emulate_SDX(int size) {
 		if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+addr)));
 		}
 		else if (!(c & CCTL)) {
 			// CCTL low
@@ -1210,7 +1227,7 @@ static void emulate_SDX(int size) {
 				// 64k & 128k versions
 				if (size == 64) ramPtr = &cart_ram1[0]; else ramPtr = &cart_ram2[0];
 				ramPtr += ((~addr) & 0x7) * 8192;
-				if (addr & 0x8) {
+				if (addr & 0x08) {
 					RD5_LOW
 					GREEN_LED_OFF
 				}
@@ -1222,7 +1239,7 @@ static void emulate_SDX(int size) {
 			if (size == 128 && (addr & 0xF0) == 0xF0) {
 				// 128k version only
 				ramPtr = &cart_ram1[0] + ((~addr) & 0x7) * 8192;
-				if (addr & 0x8) {
+				if (addr & 0x08) {
 					RD5_LOW
 					GREEN_LED_OFF
 				}
@@ -1250,14 +1267,14 @@ static void emulate_diamond_express(uint8_t cctlAddr) {
 		if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)(*(ramPtr+addr)))<<8;
+			DATA_OUT = ((uint16_t)(*(ramPtr+addr)));
 		}
 		else if (!(c & CCTL)) {
 			// CCTL low
 			addr = ADDR_IN;
 			if ((addr & 0xF0) == cctlAddr) {
-				ramPtr = &cart_ram1[0] + ((~addr) & 0x7) * 8192;
-				if (addr & 0x8) {
+				ramPtr = &cart_ram1[0] + ((~addr) & 0x07) * 8192;
+				if (addr & 0x08) {
 					RD5_LOW
 					GREEN_LED_OFF
 				}
@@ -1286,12 +1303,12 @@ static void emulate_blizzard() {
 		if (!(c & S4)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram1[addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram1[addr]);
 		}
 		else if (!(c & S5)) {
 			SET_DATA_MODE_OUT
 			addr = ADDR_IN;
-			DATA_OUT = ((uint16_t)cart_ram1[0x2000|addr])<<8;
+			DATA_OUT = ((uint16_t)cart_ram1[0x2000|addr]);
 		}
 		else if (!(c & CCTL)) {
 			// CCTL
@@ -1322,7 +1339,7 @@ static void feed_XEX_loader(void) {
 				// read
 				SET_DATA_MODE_OUT
 				addr = ADDR_IN & 0xFF;
-				DATA_OUT = ((uint16_t)ramPtr[addr&0xFF])<<8;
+				DATA_OUT = ((uint16_t)ramPtr[addr&0xFF]);
 				GREEN_LED_ON
 			}
 			else {
@@ -1332,9 +1349,9 @@ static void feed_XEX_loader(void) {
 				while (CONTROL_IN & PHI2)
 					data = DATA_IN;
 				if (addr == 0)
-					bank = (bank&0xFF00) | (data>>8);
+					bank = (bank & 0xFF00) | data;
 				else if (addr == 1)
-					bank = (bank&0x00FF) | (data & 0xFF00);
+					bank = (bank & 0x00FF) | (data << 8);
 
 				if (bank & 0xFF00) ramPtr = &cart_ram2[0]; else ramPtr = &cart_ram1[0];
 				ramPtr += 256 * (bank & 0x00FF);
@@ -1345,6 +1362,59 @@ static void feed_XEX_loader(void) {
 		// wait for phi2 low
 		while (CONTROL_IN & PHI2) ;
 		SET_DATA_MODE_IN
+	}
+}
+
+/* Useful for redirecting stdout output to serial line */
+static void config_uart(uint32_t baudrate)
+{
+	// Enable clock for GPIOA
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+	// Enable clock for USART1
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+	// Connect PA9 to USART1_Tx
+	GPIO_PinAFConfig(DEBUG_PORT, DEBUG_PINSRC_TX, GPIO_AF_USART1);
+	// Connect PA10 to USART1_Rx
+	GPIO_PinAFConfig(DEBUG_PORT, DEBUG_PINSRC_RX, GPIO_AF_USART1);
+
+	// Initialization of DEBUG UART GPIO
+	GPIO_InitStructure.GPIO_Pin = DEBUG_TX | DEBUG_RX;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_Init(DEBUG_PORT, &GPIO_InitStructure);
+
+	// Initialization of USART1
+	USART_InitTypeDef USART_InitStruct;
+	USART_InitStruct.USART_BaudRate = baudrate;
+	USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+	USART_InitStruct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+	USART_InitStruct.USART_Parity = USART_Parity_No;
+	USART_InitStruct.USART_StopBits = USART_StopBits_1;
+	USART_InitStruct.USART_WordLength = USART_WordLength_8b;
+	USART_Init(USART1, &USART_InitStruct);
+
+	// Enable USART1
+	USART_Cmd(USART1, ENABLE);
+}
+
+static void USART_PutChar(char c)
+{
+	// Wait until transmit data register is empty
+	while (!USART_GetFlagStatus(USART1, USART_FLAG_TXE))
+		;
+	// Send a char using USART1
+	USART_SendData(USART1, c);
+}
+
+static void USART_PutString(char *s)
+{
+	// Send a string
+	while (*s)
+	{
+		USART_PutChar(*s++);
 	}
 }
 
@@ -1386,28 +1456,43 @@ static void emulate_cartridge(int cartType) {
 	}
 }
 
+static void banner(void)
+{
+	DBG_I("ABEX-DUOCART BOARD EXPANSION\r\n");
+	DBG_I("(C) RetroBit Lab 2019 written by Gianluca Renzi <icjtqr@gmail.com>\r\n");
+}
+
 int main(void)
 {
+	/* Output: RESET & REF */
+	config_gpio_others();
+
+	ATARI_RESET_ASSERT
+
+	config_uart(115200);
+
+	banner();
+
+	DBG_V("ATARI COMPUTER IN RESET MODE\r\n");
+
 	/* Ouptut: LEDS - PB{0..1}, RD5 - PB2, RD4 - PB4 */
 	config_gpio_leds_RD45();
-
 	/* InOut: Data - PE{8..15} */
 	config_gpio_data();
-
 	/* In: Address - PD{0..15} */
 	config_gpio_addr();
-
 	/* In: Other Cart Input Sigs - PC{0..2, 4..5} */
 	config_gpio_sig();
-
-	/* All other signals */
-	config_gpio_extra_sig();
 
 	RED_LED_ON
 	int cartType = 0, atrMode = 0;
 	char curPath[256] = "";
 	char path[256];
 	init();
+
+	DBG_V("ATARI COMPUTER OUT OF RESET MODE\r\n");
+
+	ATARI_RESET_DEASSERT
 
 	while (1) {
 		GREEN_LED_OFF
@@ -1435,7 +1520,7 @@ int main(void)
 					strcpy(path, curPath); // file in current directory
 				strcat(path, "/");
 				strcat(path, entry[n].filename);
-				if (strcasecmp(get_filename_ext(entry[n].filename), "ATR")==0)
+				if (stricmp(get_filename_ext(entry[n].filename), "ATR")==0)
 				{	// ATR
 					cart_d5xx[0x01] = 3;	// ATR
 					cartType = CART_TYPE_ATR;
@@ -1564,41 +1649,5 @@ int main(void)
 				emulate_cartridge(cartType);
 		}
 	}
+
 }
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @param  file: The file name as string.
-  * @param  line: The line in file as a number.
-  * @retval None
-  */
-void _Error_Handler(char *file, int line)
-{
-	/* USER CODE BEGIN Error_Handler_Debug */
-	/* User can add his own implementation to report the HAL error return state */
-	while (1)
-	{
-	}
-	/* USER CODE END Error_Handler_Debug */
-}
-
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t* file, uint32_t line)
-{
-	/* USER CODE BEGIN 6 */
-	/* User can add his own implementation to report the file name and line number,
-	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
-	printf("Error! Wrong parameters value: file %s on line %ld\r\n", file, line);
-	while (1)
-	{
-	}
-}
-
-
