@@ -28,7 +28,7 @@ LIBS:opto
 LIBS:atmel
 LIBS:contrib
 LIBS:valves
-LIBS:AmigaComponents
+LIBS:RetroBitLab
 LIBS:Video
 LIBS:Valve
 LIBS:Triac_Thyristor

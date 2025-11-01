@@ -102,7 +102,7 @@
         (field (name Field6) None)
         (field (name Field7) 0877159106)
         (field (name Field8) "Conn PCI Express Card Edge SKT 64 POS 2mm Solder ST Thru-Hole PCI Express Tray"))
-      (libsource (lib AmigaComponents) (part 0877159106))
+      (libsource (lib RetroBitLab) (part 0877159106))
       (sheetpath (names /) (tstamps /))
       (tstamp 5CE94829))
     (comp (ref XT2)
@@ -334,7 +334,7 @@
       (sheetpath (names /MCU_MEMORY/) (tstamps /5CA8B01A/))
       (tstamp 5D14DF76)))
   (libparts
-    (libpart (lib AmigaComponents) (part 0877159106)
+    (libpart (lib RetroBitLab) (part 0877159106)
       (description "PCI Express 4.0 64 pins")
       (fields
         (field (name Reference) P)
@@ -656,8 +656,8 @@
       (uri /usr/share/kicad/library/device.lib))
     (library (logical conn)
       (uri /usr/share/kicad/library/conn.lib))
-    (library (logical AmigaComponents)
-      (uri /home/debian/Progetti/RetroBitLab-Library/AmigaComponents.lib))
+    (library (logical RetroBitLab)
+      (uri /home/debian/Progetti/RetroBitLab-Library/RetroBitLab.lib))
     (library (logical MCU_ST_STM32F4)
       (uri /home/debian/packages/kicad/kicad-symbols/MCU_ST_STM32F4.lib))
     (library (logical Connector)
